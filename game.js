@@ -1,84 +1,121 @@
-// Canvas setup
-const canvas = document.getElementById('gameCanvas');
-const ctx = canvas.getContext('2d');
-canvas.width = 800;
-canvas.height = 600;
+document.addEventListener('DOMContentLoaded', () => {
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+    canvas.width = 800;
+    canvas.height = 600;
 
-// Player setup
-const player = {
-  x: 50,
-  y: canvas.height - 70,
-  width: 50,
-  height: 50,
-  velocityX: 0,
-  velocityY: 0,
-  speed: 5,
-  jumping: true,
-  jumpSpeed: 15,
-  gravity: 1,
-};
+    let gameState = 'menu'; // Possible states: 'menu', 'playing', 'about'
+    let requestId;
 
-// Input handling
-const keys = {
-  right: false,
-  left: false,
-  up: false,
-};
+    // Player setup
+    const player = {
+        x: 50,
+        y: 100,
+        width: 50,
+        height: 50,
+        speed: 5,
+        velocityX: 0,
+        velocityY: 0,
+        jumping: false
+    };
 
-window.addEventListener('keydown', function(e) {
-  if (e.key === "ArrowRight") keys.right = true;
-  if (e.key === "ArrowLeft") keys.left = true;
-  if (e.key === "ArrowUp" && !player.jumping) {
-    player.jumping = true;
-    player.velocityY = -player.jumpSpeed;
-  }
+    // Key controls state
+    const keys = {
+        left: false,
+        right: false,
+        up: false
+    };
+
+    function startGame() {
+        gameState = 'playing';
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('aboutSection').style.display = 'none';
+        canvas.style.display = 'block';
+        gameLoop();
+    }
+
+    function gameLoop() {
+        if (gameState !== 'playing') {
+            window.cancelAnimationFrame(requestId);
+            return;
+        }
+        updateGame();
+        drawGame();
+        requestId = window.requestAnimationFrame(gameLoop);
+    }
+
+    function updateGame() {
+        // Player movement logic
+        if (keys.right) {
+            player.x += player.speed;
+        }
+        if (keys.left) {
+            player.x -= player.speed;
+        }
+        // Add jumping and gravity logic here
+    }
+
+    function drawGame() {
+        ctx.clearRect(0, 0, canvas.width, canvas.height);
+        // Player
+        ctx.fillStyle = 'blue';
+        ctx.fillRect(player.x, player.y, player.width, player.height);
+
+        // Back button
+        drawBackButton();
+    }
+
+    function drawBackButton() {
+        ctx.fillStyle = '#ccc';
+        ctx.fillRect(10, 10, 80, 30);
+        ctx.fillStyle = '#000';
+        ctx.font = '16px Arial';
+        ctx.fillText('Back', 25, 32);
+    }
+
+    canvas.addEventListener('click', (event) => {
+        const rect = canvas.getBoundingClientRect();
+        const clickX = event.clientX - rect.left;
+        const clickY = event.clientY - rect.top;
+
+        // Detect click on "Back" button
+        if (clickX >= 10 && clickX <= 90 && clickY >= 10 && clickY <= 40) {
+            showMenu();
+        }
+    });
+
+    window.addEventListener('keydown', (e) => {
+        if (gameState === 'playing') {
+            if (e.key === 'ArrowRight') keys.right = true;
+            if (e.key === 'ArrowLeft') keys.left = true;
+            if (e.key === 'ArrowUp') keys.up = true;
+        }
+    });
+
+    window.addEventListener('keyup', (e) => {
+        if (e.key === 'ArrowRight') keys.right = false;
+        if (e.key === 'ArrowLeft') keys.left = false;
+        if (e.key === 'ArrowUp') keys.up = false;
+    });
+
+    function showMenu() {
+        gameState = 'menu';
+        document.getElementById('mainMenu').style.display = 'block';
+        document.getElementById('gameCanvas').style.display = 'none';
+        document.getElementById('aboutSection').style.display = 'none';
+    }
+
+    // Setup menu button interactions
+    document.getElementById('playButton').addEventListener('click', startGame);
+    document.getElementById('aboutButton').addEventListener('click', () => {
+        gameState = 'about';
+        document.getElementById('mainMenu').style.display = 'none';
+        document.getElementById('aboutSection').style.display = 'block';
+    });
+    document.getElementById('exitButton').addEventListener('click', () => {
+        window.close(); // For Electron, you might need to send an IPC message to the main process to close the window
+    });
+    document.getElementById('backButton').addEventListener('click', showMenu);
+
+    showMenu(); // Initialize to show the main menu
 });
-
-window.addEventListener('keyup', function(e) {
-  if (e.key === "ArrowRight") keys.right = false;
-  if (e.key === "ArrowLeft") keys.left = false;
-});
-
-// Game loop
-function gameLoop() {
-  requestAnimationFrame(gameLoop);
-  updateGame();
-  drawGame();
-}
-
-function updateGame() {
-  // Movement
-  if (keys.right) {
-    player.velocityX = player.speed;
-  } else if (keys.left) {
-    player.velocityX = -player.speed;
-  } else {
-    player.velocityX = 0;
-  }
-
-  // Gravity
-  if (player.y + player.height < canvas.height) {
-    player.velocityY += player.gravity;
-    player.jumping = true;
-  } else {
-    player.velocityY = 0;
-    player.jumping = false;
-    player.y = canvas.height - player.height; // Correct player's y position if below ground
-  }
-
-  // Update player position
-  player.x += player.velocityX;
-  player.y += player.velocityY;
-
-  // Prevent player from moving out of canvas
-  if (player.x < 0) player.x = 0;
-  if (player.x + player.width > canvas.width) player.x = canvas.width - player.width;
-}
-
-function drawGame() {
-  ctx.clearRect(0, 0, canvas.width, canvas.height);
-  ctx.fillStyle = 'blue';
-  ctx.fillRect(player.x, player.y, player.width, player.height);
-}
-
-gameLoop();
